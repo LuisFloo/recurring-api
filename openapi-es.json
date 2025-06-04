@@ -1,0 +1,424 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "API V2 - Cargo Recurrente por Empresa",
+    "version": "2.0.0",
+    "description": "**Documentación del API - Módulo de Cargos Recurrentes**\n\nEsta documentación está destinada a desarrolladores de empresas que utilizan los servicios de Pharos Payments y desean integrar el módulo de cargos recurrentes en sus propios sistemas.\n\nLos **cargos recurrentes** son cobros automatizados que se ejecutan de forma periódica (diaria, mensual, anual), vinculados a una **suscripción** activa de un cliente. Cada suscripción está asociada a un **plan**, el cual define un precio y frecuencia, y este a su vez contiene uno o varios **productos**.\n\nLa relación jerárquica del sistema es la siguiente:\n- Producto → incluido en → Plan\n- Plan → asignado a → Cliente\n- Cliente → suscrito mediante → Suscripción\n- Suscripción → genera → Cargos recurrentes\n\nEl acceso a los endpoints requiere una API Key única por empresa, que debe incluirse como header en cada solicitud:\n\n`Authorization: Bearer TU_API_KEY`\n\nEsta clave se genera automáticamente al crear la empresa y no tiene vencimiento, aunque puede cambiar si se edita la configuración de la empresa.\n\nA continuación, se presentan las operaciones disponibles agrupadas por funcionalidad."
+  },
+  "servers": [
+    {
+      "url": "https://backoffice.pharospayments.com/api/v2"
+    }
+  ],
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Productos",
+      "description": "Los productos representan los artículos o servicios que una empresa ofrece como parte de su portafolio. Estos productos se utilizan posteriormente para asociarlos a los diferentes planes de suscripción disponibles para los clientes.\n\nEn esta sección se documenta cómo **consultar el listado de productos existentes** y **registrar nuevos productos** para su uso en la plataforma."
+    },
+    {
+      "name": "Planes",
+      "description": "Los planes representan la estructura comercial que combina un producto con un precio, una moneda y una frecuencia de cobro. Cada plan está diseñado para ser asignado a uno o varios clientes a través de suscripciones.\n\nEn esta sección se documenta cómo **consultar los planes existentes** y **crear nuevos planes** para asociarlos a productos y gestionar la facturación recurrente."
+    },
+    {
+      "name": "Clientes",
+      "description": "Esta sección representa a las personas que han sido vinculadas a un contrato o suscripción dentro del sistema. Un cliente es cualquier usuario final que ha sido registrado y asociado formalmente a una empresa mediante un plan de suscripción activo.\n\nAquí se documenta cómo **obtener la lista de clientes registrados**, **crear un nuevo cliente** y **actualizar la información de su método de pago**."
+    },
+    {
+      "name": "Cargos",
+      "description": "Un cargo es la transacción financiera realizada al cliente como parte de una suscripción activa. Cada cargo representa un intento de cobro por un ciclo del plan contratado.\n\nEn esta sección se documenta cómo **registrar manualmente un cargo**, **consultar el historial de cargos realizados** y, en caso necesario, **asignar un identificador externo (external ID o reference number)** al cargo. Este identificador suele generarse automáticamente, pero también puede establecerse manualmente si se requiere integración con sistemas externos."
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "API_KEY"
+      }
+    },
+    "schemas": {
+      "CustomerInput": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "name"
+        ]
+      },
+      "ProductInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "PlanInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "integer"
+          },
+          "currency_id": {
+            "type": "integer"
+          },
+          "interval": {
+            "type": "string"
+          },
+          "product_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "amount",
+          "currency_id",
+          "interval",
+          "product_id"
+        ]
+      },
+      "SubscriptionInput": {
+        "type": "object",
+        "properties": {
+          "customer_id": {
+            "type": "integer"
+          },
+          "plan_id": {
+            "type": "integer"
+          },
+          "total_cycles": {
+            "type": "integer"
+          },
+          "current_cycle": {
+            "type": "integer"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date"
+          }
+        },
+        "required": [
+          "customer_id",
+          "plan_id",
+          "total_cycles",
+          "current_cycle",
+          "start_date"
+        ]
+      },
+      "ChargeInput": {
+        "type": "object",
+        "properties": {
+          "subscription_id": {
+            "type": "integer"
+          },
+          "terminal_id": {
+            "type": "integer"
+          },
+          "currency_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "subscription_id",
+          "terminal_id",
+          "currency_id"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/customers": {
+      "post": {
+        "tags": [
+          "Clientes"
+        ],
+        "summary": "Crear cliente",
+        "description": "Registra un nuevo cliente.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "customer": {
+                    "$ref": "#/components/schemas/CustomerInput"
+                  }
+                },
+                "required": [
+                  "customer"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Cliente creado"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Clientes"
+        ],
+        "summary": "Listar clientes",
+        "description": "Devuelve una lista de clientes registrados.",
+        "responses": {
+          "200": {
+            "description": "Lista de clientes"
+          }
+        }
+      }
+    },
+    "/products": {
+      "post": {
+        "tags": [
+          "Productos"
+        ],
+        "summary": "Crear producto",
+        "description": "Crea un nuevo producto.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "product": {
+                    "$ref": "#/components/schemas/ProductInput"
+                  }
+                },
+                "required": [
+                  "product"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Producto creado"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Productos"
+        ],
+        "summary": "Listar productos",
+        "description": "Lista todos los productos disponibles.",
+        "responses": {
+          "200": {
+            "description": "Lista de productos"
+          }
+        }
+      }
+    },
+    "/plans": {
+      "post": {
+        "tags": [
+          "Planes"
+        ],
+        "summary": "Crear plan",
+        "description": "Crea un nuevo plan de suscripción.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "plan": {
+                    "$ref": "#/components/schemas/PlanInput"
+                  }
+                },
+                "required": [
+                  "plan"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Plan creado"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Planes"
+        ],
+        "summary": "Listar planes",
+        "description": "Lista todos los planes disponibles.",
+        "responses": {
+          "200": {
+            "description": "Lista de planes"
+          }
+        }
+      }
+    },
+    "/subscription_charges": {
+      "post": {
+        "tags": [
+          "Cargos"
+        ],
+        "summary": "Crear cargo",
+        "description": "Realiza un cargo manual a una suscripción.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChargeInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Cargo creado"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Cargos"
+        ],
+        "summary": "Listar cargos",
+        "description": "Lista todos los cargos realizados a suscripciones.",
+        "responses": {
+          "200": {
+            "description": "Lista de cargos"
+          }
+        }
+      }
+    },
+    "/customers/{id}": {
+      "patch": {
+        "tags": [
+          "Clientes"
+        ],
+        "summary": "Actualizar tarjeta del cliente",
+        "description": "Actualiza el método de pago del cliente usando un token de tarjeta.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "ID del cliente"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "card_token": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "card_token"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tarjeta actualizada exitosamente"
+          },
+          "400": {
+            "description": "Solicitud inválida"
+          },
+          "401": {
+            "description": "No autorizado"
+          },
+          "404": {
+            "description": "Cliente no encontrado"
+          }
+        }
+      }
+    },
+    "/subscription_charges/{id}": {
+      "patch": {
+        "tags": [
+          "Cargos"
+        ],
+        "summary": "Asignar external ID",
+        "description": "Asigna un identificador externo a un cargo de suscripción.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "ID del cargo de suscripción"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "external_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "external_id"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ID externo asignado"
+          },
+          "400": {
+            "description": "Solicitud inválida"
+          },
+          "401": {
+            "description": "No autorizado"
+          },
+          "404": {
+            "description": "Cargo no encontrado"
+          }
+        }
+      }
+    }
+  }
+}

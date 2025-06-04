@@ -1,0 +1,424 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "API V2 - Recurring Charges per Company",
+    "version": "2.0.0",
+    "description": "**API Documentation - Recurring Charges Module**\n\nThis documentation is intended for developers of companies that use Pharos Payments services and wish to integrate the recurring charges module into their own systems.\n\n**Recurring charges** are automated collections that are executed periodically (daily, monthly, annually), linked to an active customer **subscription**. Each subscription is associated with a **plan**, which defines a price and frequency, and this in turn contains one or more **products**.\n\nThe hierarchical relationship of the system is as follows:\n- Product → included in → Plan\n- Plan → assigned to → Customer\n- Customer → subscribed through → Subscription\n- Subscription → generates → Recurring charges\n\nAccess to the endpoints requires a unique API Key per company, which must be included as a header in each request:\n\n`Authorization: Bearer YOUR_API_KEY`\n\nThis key is generated automatically when the company is created and does not expire, although it may change if the company's configuration is edited.\n\nBelow are the available operations grouped by functionality."
+  },
+  "servers": [
+    {
+      "url": "https://backoffice.pharospayments.com/api/v2"
+    }
+  ],
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Products",
+      "description": "Products represent the items or services that a company offers as part of its portfolio. These products are later used to associate them with the different subscription plans available to customers.\n\nThis section documents how to **query the list of existing products** and **register new products** for use on the platform."
+    },
+    {
+      "name": "Plans",
+      "description": "Plans represent the commercial structure that combines a product with a price, a currency, and a billing frequency. Each plan is designed to be assigned to one or more customers through subscriptions.\n\nThis section documents how to **query existing plans** and **create new plans** to associate them with products and manage recurring billing."
+    },
+    {
+      "name": "Customers",
+      "description": "This section represents the people who have been linked to a contract or subscription within the system. A customer is any end-user who has been registered and formally associated with a company through an active subscription plan.\n\nThis documents how to **get the list of registered customers**, **create a new customer**, and **update their payment method information**."
+    },
+    {
+      "name": "Charges",
+      "description": "A charge is the financial transaction made to the customer as part of an active subscription. Each charge represents a collection attempt for a cycle of the contracted plan.\n\nThis section documents how to **manually register a charge**, **consult the history of charges made**, and, if necessary, **assign an external identifier (external ID or reference number)** to the charge. This identifier is usually generated automatically, but can also be set manually if integration with external systems is required."
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "API_KEY"
+      }
+    },
+    "schemas": {
+      "CustomerInput": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "name"
+        ]
+      },
+      "ProductInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "PlanInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "integer"
+          },
+          "currency_id": {
+            "type": "integer"
+          },
+          "interval": {
+            "type": "string"
+          },
+          "product_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "amount",
+          "currency_id",
+          "interval",
+          "product_id"
+        ]
+      },
+      "SubscriptionInput": {
+        "type": "object",
+        "properties": {
+          "customer_id": {
+            "type": "integer"
+          },
+          "plan_id": {
+            "type": "integer"
+          },
+          "total_cycles": {
+            "type": "integer"
+          },
+          "current_cycle": {
+            "type": "integer"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date"
+          }
+        },
+        "required": [
+          "customer_id",
+          "plan_id",
+          "total_cycles",
+          "current_cycle",
+          "start_date"
+        ]
+      },
+      "ChargeInput": {
+        "type": "object",
+        "properties": {
+          "subscription_id": {
+            "type": "integer"
+          },
+          "terminal_id": {
+            "type": "integer"
+          },
+          "currency_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "subscription_id",
+          "terminal_id",
+          "currency_id"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/customers": {
+      "post": {
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Create customer",
+        "description": "Registers a new customer.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "customer": {
+                    "$ref": "#/components/schemas/CustomerInput"
+                  }
+                },
+                "required": [
+                  "customer"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Customer created"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Customers"
+        ],
+        "summary": "List customers",
+        "description": "Returns a list of registered customers.",
+        "responses": {
+          "200": {
+            "description": "List of customers"
+          }
+        }
+      }
+    },
+    "/products": {
+      "post": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Create product",
+        "description": "Creates a new product.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "product": {
+                    "$ref": "#/components/schemas/ProductInput"
+                  }
+                },
+                "required": [
+                  "product"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Product created"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "List products",
+        "description": "Lists all available products.",
+        "responses": {
+          "200": {
+            "description": "List of products"
+          }
+        }
+      }
+    },
+    "/plans": {
+      "post": {
+        "tags": [
+          "Plans"
+        ],
+        "summary": "Create plan",
+        "description": "Creates a new subscription plan.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "plan": {
+                    "$ref": "#/components/schemas/PlanInput"
+                  }
+                },
+                "required": [
+                  "plan"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Plan created"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Plans"
+        ],
+        "summary": "List plans",
+        "description": "Lists all available plans.",
+        "responses": {
+          "200": {
+            "description": "List of plans"
+          }
+        }
+      }
+    },
+    "/subscription_charges": {
+      "post": {
+        "tags": [
+          "Charges"
+        ],
+        "summary": "Create charge",
+        "description": "Makes a manual charge to a subscription.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChargeInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Charge created"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Charges"
+        ],
+        "summary": "List charges",
+        "description": "Lists all charges made to subscriptions.",
+        "responses": {
+          "200": {
+            "description": "List of charges"
+          }
+        }
+      }
+    },
+    "/customers/{id}": {
+      "patch": {
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Update customer card",
+        "description": "Updates the customer's payment method using a card token.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Customer ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "card_token": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "card_token"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Card updated successfully"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Customer not found"
+          }
+        }
+      }
+    },
+    "/subscription_charges/{id}": {
+      "patch": {
+        "tags": [
+          "Charges"
+        ],
+        "summary": "Assign external ID",
+        "description": "Assigns an external identifier to a subscription charge.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Subscription charge ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "external_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "external_id"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "External ID assigned"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Charge not found"
+          }
+        }
+      }
+    }
+  }
+}
