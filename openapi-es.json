@@ -1,423 +1,1281 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "API V2 - Cargo Recurrente por Empresa",
-    "version": "2.0.0",
-    "description": "**Documentación del API - Módulo de Cargos Recurrentes**\n\nEsta documentación está destinada a desarrolladores de empresas que utilizan los servicios de Pharos Payments y desean integrar el módulo de cargos recurrentes en sus propios sistemas.\n\nLos **cargos recurrentes** son cobros automatizados que se ejecutan de forma periódica (diaria, mensual, anual), vinculados a una **suscripción** activa de un cliente. Cada suscripción está asociada a un **plan**, el cual define un precio y frecuencia, y este a su vez contiene uno o varios **productos**.\n\nLa relación jerárquica del sistema es la siguiente:\n- Producto → incluido en → Plan\n- Plan → asignado a → Cliente\n- Cliente → suscrito mediante → Suscripción\n- Suscripción → genera → Cargos recurrentes\n\nEl acceso a los endpoints requiere una API Key única por empresa, que debe incluirse como header en cada solicitud:\n\n`Authorization: Bearer TU_API_KEY`\n\nEsta clave se genera automáticamente al crear la empresa y no tiene vencimiento, aunque puede cambiar si se edita la configuración de la empresa.\n\nA continuación, se presentan las operaciones disponibles agrupadas por funcionalidad."
+    "title": "Intercambio Financiero JSON",
+    "version": "1.9",
+    "description": "Este documento describe la estructura de los mensajes de intercambio financiero basados en JSON, así como también su protocolo de uso. Pharos brinda una API para acceder a su servicio de procesamiento de transacciones financieras. En ella, se utilizan mensajes de tipo JSON, enviados mediante una interfaz REST."
   },
   "servers": [
     {
-      "url": "https://backoffice.pharospayments.com/api/v2"
+      "url": "https://api-sandbox.pharospayments.com",
+      "description": "Entorno de Pruebas (Sandbox)"
+    },
+    {
+      "url": "https://api.pharospayments.com",
+      "description": "Entorno de Producción"
     }
   ],
   "security": [
     {
-      "BearerAuth": []
+      "basicAuth": []
     }
   ],
   "tags": [
     {
-      "name": "Productos",
-      "description": "Los productos representan los artículos o servicios que una empresa ofrece como parte de su portafolio. Estos productos se utilizan posteriormente para asociarlos a los diferentes planes de suscripción disponibles para los clientes.\n\nEn esta sección se documenta cómo **consultar el listado de productos existentes** y **registrar nuevos productos** para su uso en la plataforma."
+      "name": "Transacciones Financieras",
+      "description": "Operaciones para procesar pagos, devoluciones y pre-autorizaciones."
     },
     {
-      "name": "Planes",
-      "description": "Los planes representan la estructura comercial que combina un producto con un precio, una moneda y una frecuencia de cobro. Cada plan está diseñado para ser asignado a uno o varios clientes a través de suscripciones.\n\nEn esta sección se documenta cómo **consultar los planes existentes** y **crear nuevos planes** para asociarlos a productos y gestionar la facturación recurrente."
+      "name": "Gestión de Claves",
+      "description": "Operaciones para el intercambio seguro de claves DUKPT y PIN Online."
     },
     {
-      "name": "Clientes",
-      "description": "Esta sección representa a las personas que han sido vinculadas a un contrato o suscripción dentro del sistema. Un cliente es cualquier usuario final que ha sido registrado y asociado formalmente a una empresa mediante un plan de suscripción activo.\n\nAquí se documenta cómo **obtener la lista de clientes registrados**, **crear un nuevo cliente** y **actualizar la información de su método de pago**."
-    },
-    {
-      "name": "Cargos",
-      "description": "Un cargo es la transacción financiera realizada al cliente como parte de una suscripción activa. Cada cargo representa un intento de cobro por un ciclo del plan contratado.\n\nEn esta sección se documenta cómo **registrar manualmente un cargo**, **consultar el historial de cargos realizados** y, en caso necesario, **asignar un identificador externo (external ID o reference number)** al cargo. Este identificador suele generarse automáticamente, pero también puede establecerse manualmente si se requiere integración con sistemas externos."
+      "name": "Diagnóstico",
+      "description": "Operaciones para el monitoreo y diagnóstico de terminales."
     }
   ],
-  "components": {
-    "securitySchemes": {
-      "BearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "API_KEY"
+  "paths": {
+    "/sale": {
+      "post": {
+        "tags": [
+          "Transacciones Financieras"
+        ],
+        "summary": "Autorización de Venta (SALE)",
+        "description": "Representa la solicitud de un cargo en la cuenta del tarjetahabiente.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaleRequest"
+              },
+              "examples": {
+                "Chip": {
+                  "summary": "Venta con lectura de Chip",
+                  "value": {
+                    "tran_type": "SALE",
+                    "stan": "25",
+                    "date": "20160426115545",
+                    "amount": "100.00",
+                    "currency": "484",
+                    "order_number": "#723456",
+                    "terminal_code": "1",
+                    "merchant_code": "138",
+                    "ksn": "88888820500056200023",
+                    "payments": "12",
+                    "card": {
+                      "reading_method": "chip",
+                      "track2": "E2795ACA8C9E19A0A9470B348032CD33704FEF3413C",
+                      "exp_month": "08",
+                      "exp_year": "19",
+                      "cardholder_name": "GUTIERREZ/ZEUS A CASTILLO",
+                      "tags": {
+                        "9A": "160426",
+                        "CO": "88888820500056400074",
+                        "9F26": "CFFB1C2F18291EDB",
+                        "9B": "E800",
+                        "4F": "A000000025010801",
+                        "9F27": "80"
+                      }
+                    }
+                  }
+                },
+                "Manual": {
+                  "summary": "Venta con ingreso manual",
+                  "value": {
+                    "tran_type": "SALE",
+                    "date": "20170928112014",
+                    "currency": "840",
+                    "amount": "6.50",
+                    "order_number": "Factura #20945.",
+                    "terminal_code": "59824",
+                    "merchant_code": "8850226",
+                    "card": {
+                      "reading_method": "key_entry",
+                      "card_number": "4444333322221111",
+                      "sec_code": "285",
+                      "exp_month": "12",
+                      "exp_year": "20",
+                      "cardholder_name": "JUAN PEREZ"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Respuesta de transacción SALE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                },
+                "examples": {
+                  "Aprobada": {
+                    "summary": "Respuesta Aprobada",
+                    "value": {
+                      "successful": true,
+                      "display_message": "APROBADA",
+                      "result_code": "00",
+                      "auth_code": "006000",
+                      "script1": "8710F860D842400000878EFD32C3E3FD40B",
+                      "arpc": "0A83DA6BE4CF2030",
+                      "issuer_auth_resp_code": "7001"
+                    }
+                  },
+                  "Denegada": {
+                    "summary": "Respuesta Denegada",
+                    "value": {
+                      "successful": false,
+                      "display_message": "TARJETA VENCIDA",
+                      "result_code": "33"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
-    "schemas": {
-      "CustomerInput": {
-        "type": "object",
-        "properties": {
-          "email": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
+    "/refund": {
+      "post": {
+        "tags": [
+          "Transacciones Financieras"
+        ],
+        "summary": "Devolución (REFUND)",
+        "description": "Representa la solicitud de una acreditación en la cuenta del tarjetahabiente.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefundRequest"
+              },
+              "example": {
+                "tran_type": "REFUND",
+                "stan": "61",
+                "date": "20160428112452",
+                "amount": "100.00",
+                "currency": "484",
+                "order_number": "#865234",
+                "terminal_code": "1",
+                "merchant_code": "138",
+                "ksn": "88888820500056200023",
+                "card": {
+                  "reading_method": "chip",
+                  "track2": "E2795ACA8C9E19A0A9470B348032CD33704FEF3413C",
+                  "exp_month": "08",
+                  "exp_year": "19",
+                  "cardholder_name": "GUTIERREZ/ZEUS A CASTILLO",
+                  "tags": {
+                    "9A": "160426",
+                    "CO": "88888820500056400074",
+                    "9F26": "CFFB1C2F18291EDB",
+                    "9B": "E800",
+                    "4F": "A000000025010801",
+                    "9F27": "80"
+                  }
+                }
+              }
+            }
           }
         },
-        "required": [
-          "email",
-          "name"
-        ]
-      },
-      "ProductInput": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
+        "responses": {
+          "200": {
+            "description": "Respuesta de transacción REFUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth": {
+      "post": {
+        "tags": [
+          "Transacciones Financieras"
+        ],
+        "summary": "Pre-autorización (AUTH)",
+        "description": "Representa la solicitud de un cargo en la cuenta del tarjetahabiente. Típicamente aplicado para operaciones de Check-in. Una pre-autorización debe tener un siguiente mensaje de confirmación (COMPLETION) o de cancelación (CANCEL).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthRequest"
+              },
+              "example": {
+                "tran_type": "AUTH",
+                "stan": "000003",
+                "date": "20211011122818",
+                "amount": "0000000012.28",
+                "currency": "484",
+                "order_number": "000010",
+                "terminal_code": "00001966",
+                "merchant_code": "1368",
+                "pos_environment": "attended",
+                "card": {
+                  "reading_method": "chip",
+                  "track2": "*************",
+                  "exp_month": "**",
+                  "exp_year": "**",
+                  "cardholder_name": "MARTINEZ/ALVAR NUNES",
+                  "tags": {
+                    "4F": "A000000025010801",
+                    "9A": "211011",
+                    "9F02": "000000001228",
+                    "9F26": "90AF773B535296BF",
+                    "9F27": "80"
+                  }
+                }
+              }
+            }
           }
         },
-        "required": [
-          "name"
-        ]
-      },
-      "PlanInput": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "amount": {
-            "type": "integer"
-          },
-          "currency_id": {
-            "type": "integer"
-          },
-          "interval": {
-            "type": "string"
-          },
-          "product_id": {
-            "type": "integer"
+        "responses": {
+          "200": {
+            "description": "Respuesta de transacción AUTH",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                },
+                "example": {
+                  "successful": true,
+                  "display_message": "APROBADA",
+                  "result_code": "00",
+                  "auth_code": "803186",
+                  "reference_number": "000000156848",
+                  "arpc": "3BDCBF0805764D4D",
+                  "issuer_auth_resp_code": "3030"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/completion": {
+      "post": {
+        "tags": [
+          "Transacciones Financieras"
+        ],
+        "summary": "Confirmación de Pre-autorización (COMPLETION)",
+        "description": "Representa la confirmación de una solicitud de un cargo en la cuenta del tarjetahabiente. Típicamente aplicado para operaciones de Check-out. El valor de `reference_number` debe corresponder a la transacción AUTH original. El monto puede variar.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompletionRequest"
+              },
+              "example": {
+                "tran_type": "COMPLETION",
+                "stan": "000004",
+                "date": "20211011123518",
+                "amount": "12.28",
+                "currency": "484",
+                "order_number": "000010",
+                "terminal_code": "00001966",
+                "merchant_code": "1368",
+                "reference_number": "000000156848",
+                "pos_environment": "attended",
+                "card": {
+                  "reading_method": "key_entry"
+                }
+              }
+            }
           }
         },
-        "required": [
-          "name",
-          "amount",
-          "currency_id",
-          "interval",
-          "product_id"
-        ]
-      },
-      "SubscriptionInput": {
-        "type": "object",
-        "properties": {
-          "customer_id": {
-            "type": "integer"
-          },
-          "plan_id": {
-            "type": "integer"
-          },
-          "total_cycles": {
-            "type": "integer"
-          },
-          "current_cycle": {
-            "type": "integer"
-          },
-          "start_date": {
-            "type": "string",
-            "format": "date"
+        "responses": {
+          "200": {
+            "description": "Respuesta de transacción COMPLETION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cancel": {
+      "post": {
+        "tags": [
+          "Transacciones Financieras"
+        ],
+        "summary": "Cancelación (CANCEL)",
+        "description": "Representa una solicitud de cancelación de una transacción AUTH o COMPLETION. Solo es posible anular transacciones dentro de la misma fecha de negocio.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelRequest"
+              },
+              "example": {
+                "tran_type": "CANCEL",
+                "date": "20200429121805",
+                "reference_number": "000000125612",
+                "stan": "202031",
+                "currency": "484",
+                "amount": "30.00",
+                "card": {
+                  "reading_method": "key_entry"
+                },
+                "order_number": "CANCELACION",
+                "terminal_code": "1",
+                "merchant_code": "6",
+                "source_ip": "189.217.107.102",
+                "pos_environment": "ecommerce"
+              }
+            }
           }
         },
-        "required": [
-          "customer_id",
-          "plan_id",
-          "total_cycles",
-          "current_cycle",
-          "start_date"
-        ]
-      },
-      "ChargeInput": {
-        "type": "object",
-        "properties": {
-          "subscription_id": {
-            "type": "integer"
-          },
-          "terminal_id": {
-            "type": "integer"
-          },
-          "currency_id": {
-            "type": "integer"
+        "responses": {
+          "200": {
+            "description": "Respuesta de transacción CANCEL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/void": {
+      "post": {
+        "tags": [
+          "Transacciones Financieras"
+        ],
+        "summary": "Reverso (VOID)",
+        "description": "Representa una solicitud de reverso de una transacción previa (autorización o devolución). El valor del elemento `stan` debe ser el mismo enviado en la transacción original. Solo es posible anular transacciones dentro de la misma fecha de negocio. Se envía cuando: a) el usuario solicitó la cancelación; b) la terminal no recibió respuesta; c) se produjo un error en la terminal que impidió procesar la respuesta.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoidRequest"
+              },
+              "example": {
+                "tran_type": "VOID",
+                "stan": "25",
+                "terminal_code": "1",
+                "merchant_code": "138"
+              }
+            }
           }
         },
-        "required": [
-          "subscription_id",
-          "terminal_id",
-          "currency_id"
-        ]
+        "responses": {
+          "200": {
+            "description": "Respuesta de transacción VOID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cash_back": {
+      "post": {
+        "tags": [
+          "Transacciones Financieras"
+        ],
+        "summary": "Compra con retiro de efectivo (CASH_BACK)",
+        "description": "Permite realizar una compra y simultáneamente retirar efectivo. Requiere especificar el importe de la compra (`amount`) y el de retiro (`tip_amount`). Aplica para tarjetas de débito.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CashbackRequest"
+              },
+              "example": {
+                "tran_type": "CASH_BACK",
+                "stan": "000003",
+                "date": "20211011122818",
+                "amount": "0000000012.28",
+                "tip_amount": "0000000010.00",
+                "currency": "484",
+                "order_number": "000010",
+                "terminal_code": "00001966",
+                "merchant_code": "1368",
+                "pos_environment": "attended",
+                "card": {
+                  "reading_method": "chip",
+                  "track2": "*************",
+                  "exp_month": "**",
+                  "exp_year": "**",
+                  "cardholder_name": "MARTINEZ/ALVAR NUNES",
+                  "tags": {
+                    "9A": "211011",
+                    "9F26": "90AF773B535296BF",
+                    "9F27": "80",
+                    "4F": "A000000025010801",
+                    "9F02": "000000001228",
+                    "9F03": "000000001000",
+                    "9C": "09"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Respuesta de transacción CASH_BACK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                },
+                "example": {
+                  "successful": true,
+                  "display_message": "APROBADA",
+                  "result_code": "00",
+                  "auth_code": "803186",
+                  "reference_number": "000000156848"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/key_init": {
+      "post": {
+        "tags": [
+          "Gestión de Claves"
+        ],
+        "summary": "Inicialización de llave DUKPT (KEY_INIT)",
+        "description": "Inicia el proceso de intercambio de llaves DUKPT para proteger datos sensibles de la tarjeta (track1, track2, PAN). La terminal solicita una nueva llave al switch para encriptar los datos sensibles en cada transacción.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeyInitRequest"
+              },
+              "example": {
+                "tran_type": "KEY_INIT",
+                "terminal_code": "1",
+                "merchant_code": "138",
+                "encrypted_random_key": "[512 bytes encriptados con RSA de Pharos]",
+                "random_key_check_value": "A00FDE",
+                "random_key_crc": "8437A99F"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Respuesta con la nueva llave DUKPT.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KeyInitResponse"
+                },
+                "example": {
+                  "successful": true,
+                  "encrypted_new_key": "584AF34F675CD1BCFA5B44784B10AB2D",
+                  "new_key_check_value": "37A99F",
+                  "new_key_crc": "675CD1BC"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/key_request": {
+      "post": {
+        "tags": [
+          "Gestión de Claves"
+        ],
+        "summary": "Solicitud de llave para PIN Online (KEY_REQUEST)",
+        "description": "Paso 1 del flujo de PIN Online. La terminal inicia la solicitud asincrónica de una nueva llave TR-31 para cifrado de PIN.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PinKeyRequest"
+              },
+              "example": {
+                "tran_type": "KEY_REQUEST",
+                "terminal_code": "1",
+                "merchant_code": "138",
+                "key_purpose": "PIN",
+                "key_scheme": "TR31",
+                "pin_key_variant": "01",
+                "key_entry_mode": "online"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Respuesta a la solicitud de llave. Indica que la solicitud está en proceso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PinKeyRequestResponse"
+                },
+                "example": {
+                  "successful": true,
+                  "request_id": "REQ1234567890",
+                  "status": "pending",
+                  "estimated_ready_in_sec": 3
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/key_fetch": {
+      "post": {
+        "tags": [
+          "Gestión de Claves"
+        ],
+        "summary": "Recuperación de llave para PIN Online (KEY_FETCH)",
+        "description": "Paso 2 del flujo de PIN Online. La terminal consulta la disponibilidad de la llave usando el `request_id` obtenido en el paso anterior y envía una llave aleatoria de transporte.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PinKeyFetchRequest"
+              },
+              "example": {
+                "tran_type": "KEY_FETCH",
+                "request_id": "REQ1234567890",
+                "encrypted_random_key": "3081A0308201...",
+                "random_key_check_value": "A00FDE",
+                "random_key_crc": "8437A99F"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Respuesta con la nueva llave TR-31 cifrada si está lista, o un estado pendiente si no lo está.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "Exitosa": {
+                    "summary": "Llave entregada exitosamente",
+                    "value": {
+                      "successful": true,
+                      "key_purpose": "PIN",
+                      "encrypted_new_key": "584AF34F675CD1BCFA5B44784B10AB2D",
+                      "new_key_check_value": "37A99F",
+                      "new_key_crc": "675CD1BC",
+                      "pin_key_id": "PINKEY01"
+                    }
+                  },
+                  "Pendiente": {
+                    "summary": "La llave aún no está disponible",
+                    "value": {
+                      "successful": false,
+                      "status": "pending",
+                      "message": "La nueva llave aún no está disponible. Intente nuevamente."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/diagnosis/api/KeepAlive": {
+      "post": {
+        "tags": [
+          "Diagnóstico"
+        ],
+        "summary": "Mensaje Keep Alive",
+        "description": "Sirve para que las terminales físicas mantengan viva la comunicación con el gateway de autorización. Adicionalmente, recopila información de diagnóstico relevante de la terminal. Los datos de diagnóstico se envían en el objeto `metadata`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeepAliveRequest"
+              },
+              "example": {
+                "tran_type": "KEEP_ALIVE",
+                "date": "20220914130714",
+                "terminal_code": "00002001",
+                "merchant_code": "1368",
+                "source_ip": "192.168.0.17",
+                "pos_environment": "attended",
+                "metadata": {
+                  "signal": "051",
+                  "terminalID": "00002001",
+                  "serial_number": "CCCCCC",
+                  "conection_mode": "ZZZZZZ",
+                  "app_ver": "YYYYYY",
+                  "app_install_date": "20220910130714"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Respuesta exitosa del Keep Alive.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "successful": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Keep alive received"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     }
   },
-  "paths": {
-    "/customers": {
-      "post": {
-        "tags": [
-          "Clientes"
-        ],
-        "summary": "Crear cliente",
-        "description": "Registra un nuevo cliente.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "customer": {
-                    "$ref": "#/components/schemas/CustomerInput"
-                  }
-                },
-                "required": [
-                  "customer"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Cliente creado"
-          }
-        }
-      },
-      "get": {
-        "tags": [
-          "Clientes"
-        ],
-        "summary": "Listar clientes",
-        "description": "Devuelve una lista de clientes registrados.",
-        "responses": {
-          "200": {
-            "description": "Lista de clientes"
-          }
-        }
+  "components": {
+    "securitySchemes": {
+      "basicAuth": {
+        "type": "http",
+        "scheme": "basic",
+        "description": "Autenticación HTTP Basic. Utilice la `secret key` provista como el nombre de usuario. No es necesario indicar la contraseña."
       }
     },
-    "/products": {
-      "post": {
-        "tags": [
-          "Productos"
-        ],
-        "summary": "Crear producto",
-        "description": "Crea un nuevo producto.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "product": {
-                    "$ref": "#/components/schemas/ProductInput"
-                  }
-                },
-                "required": [
-                  "product"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Producto creado"
-          }
-        }
-      },
-      "get": {
-        "tags": [
-          "Productos"
-        ],
-        "summary": "Listar productos",
-        "description": "Lista todos los productos disponibles.",
-        "responses": {
-          "200": {
-            "description": "Lista de productos"
-          }
-        }
-      }
-    },
-    "/plans": {
-      "post": {
-        "tags": [
-          "Planes"
-        ],
-        "summary": "Crear plan",
-        "description": "Crea un nuevo plan de suscripción.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "plan": {
-                    "$ref": "#/components/schemas/PlanInput"
-                  }
-                },
-                "required": [
-                  "plan"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Plan creado"
-          }
-        }
-      },
-      "get": {
-        "tags": [
-          "Planes"
-        ],
-        "summary": "Listar planes",
-        "description": "Lista todos los planes disponibles.",
-        "responses": {
-          "200": {
-            "description": "Lista de planes"
-          }
-        }
-      }
-    },
-    "/subscription_charges": {
-      "post": {
-        "tags": [
-          "Cargos"
-        ],
-        "summary": "Crear cargo",
-        "description": "Realiza un cargo manual a una suscripción.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ChargeInput"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Cargo creado"
-          }
-        }
-      },
-      "get": {
-        "tags": [
-          "Cargos"
-        ],
-        "summary": "Listar cargos",
-        "description": "Lista todos los cargos realizados a suscripciones.",
-        "responses": {
-          "200": {
-            "description": "Lista de cargos"
-          }
-        }
-      }
-    },
-    "/customers/{id}": {
-      "patch": {
-        "tags": [
-          "Clientes"
-        ],
-        "summary": "Actualizar tarjeta del cliente",
-        "description": "Actualiza el método de pago del cliente usando un token de tarjeta.",
-        "parameters": [
+    "schemas": {
+      "AuthRequest": {
+        "allOf": [
           {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            },
-            "description": "ID del cliente"
+            "$ref": "#/components/schemas/GenericRequest"
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "card_token": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "card_token"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Tarjeta actualizada exitosamente"
-          },
-          "400": {
-            "description": "Solicitud inválida"
-          },
-          "401": {
-            "description": "No autorizado"
-          },
-          "404": {
-            "description": "Cliente no encontrado"
+        "properties": {
+          "tran_type": {
+            "type": "string",
+            "enum": [
+              "AUTH"
+            ],
+            "description": "Tipo de transacción: Pre-autorización"
           }
         }
-      }
-    },
-    "/subscription_charges/{id}": {
-      "patch": {
-        "tags": [
-          "Cargos"
-        ],
-        "summary": "Asignar external ID",
-        "description": "Asigna un identificador externo a un cargo de suscripción.",
-        "parameters": [
+      },
+      "CancelRequest": {
+        "allOf": [
           {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            },
-            "description": "ID del cargo de suscripción"
+            "$ref": "#/components/schemas/GenericRequest"
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "external_id": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "external_id"
-                ]
-              }
-            }
+        "properties": {
+          "tran_type": {
+            "type": "string",
+            "enum": [
+              "CANCEL"
+            ],
+            "description": "Tipo de transacción: Cancelación"
+          },
+          "reference_number": {
+            "type": "string",
+            "description": "Número de referencia de la transacción AUTH o COMPLETION original a cancelar."
           }
         },
-        "responses": {
-          "200": {
-            "description": "ID externo asignado"
+        "required": [
+          "tran_type",
+          "reference_number"
+        ]
+      },
+      "Card": {
+        "type": "object",
+        "description": "Contiene todos los datos de la tarjeta.",
+        "properties": {
+          "reading_method": {
+            "type": "string",
+            "description": "Método utilizado para la lectura de datos de la tarjeta.",
+            "enum": [
+              "key_entry",
+              "chip",
+              "swipe",
+              "contactless",
+              "token",
+              "fallback"
+            ]
           },
-          "400": {
-            "description": "Solicitud inválida"
+          "card_number": {
+            "type": "string",
+            "description": "Número de tarjeta. Obligatorio para ingreso manual.",
+            "example": "4444333322221111"
           },
-          "401": {
-            "description": "No autorizado"
+          "exp_month": {
+            "type": "string",
+            "description": "Mes de vencimiento de la tarjeta (MM).",
+            "example": "08"
           },
-          "404": {
-            "description": "Cargo no encontrado"
+          "exp_year": {
+            "type": "string",
+            "description": "Últimos dos dígitos del año de vencimiento de la tarjeta (YY).",
+            "example": "25"
+          },
+          "sec_code": {
+            "type": "string",
+            "description": "Código de seguridad de la tarjeta (CVV, CVC). Obligatorio para transacciones digitadas y con lectura de banda.",
+            "example": "123"
+          },
+          "last_four": {
+            "type": "string",
+            "description": "Últimos cuatro dígitos del número de tarjeta.",
+            "readOnly": true
+          },
+          "cardholder_name": {
+            "type": "string",
+            "description": "Nombre del tarjetahabiente.",
+            "example": "JUAN PEREZ"
+          },
+          "track1": {
+            "type": "string",
+            "description": "Datos del Track 1 de la tarjeta. Opcional."
+          },
+          "track2": {
+            "type": "string",
+            "description": "Datos del Track 2 de la tarjeta. Obligatorio para transacciones por banda y lectura de chip."
+          },
+          "tags": {
+            "$ref": "#/components/schemas/Tags"
+          },
+          "token": {
+            "type": "string",
+            "description": "Token válido, creado previamente, que contiene los datos de tarjeta. Obligatorio si `reading_method` es 'token'."
+          },
+          "pin_block": {
+            "type": "string",
+            "description": "PIN cifrado según formato ISO 9564 (ej. formato 0 o 1).",
+            "example": "041234ACBD12FEEF"
+          },
+          "pin_block_format": {
+            "type": "string",
+            "description": "Código que indica el formato ISO del PIN block.",
+            "example": "01"
+          },
+          "pin_key_id": {
+            "type": "string",
+            "description": "Identificador de la llave TR-31 usada para el cifrado del PIN. Debe coincidir con el entregado en el paso KEY_FETCH.",
+            "example": "PINKEY01"
+          }
+        },
+        "required": [
+          "reading_method"
+        ]
+      },
+      "CashbackRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/GenericRequest"
+          }
+        ],
+        "properties": {
+          "tran_type": {
+            "type": "string",
+            "enum": [
+              "CASH_BACK"
+            ],
+            "description": "Tipo de transacción: Compra con retiro"
+          },
+          "tip_amount": {
+            "type": "string",
+            "format": "decimal",
+            "description": "Monto de retiro de efectivo. El campo `amount` contendrá el valor de la compra.",
+            "example": "10.00"
+          }
+        },
+        "required": [
+          "tran_type",
+          "tip_amount"
+        ]
+      },
+      "CompletionRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/GenericRequest"
+          }
+        ],
+        "properties": {
+          "tran_type": {
+            "type": "string",
+            "enum": [
+              "COMPLETION"
+            ],
+            "description": "Tipo de transacción: Confirmación de pre-autorización"
+          },
+          "reference_number": {
+            "type": "string",
+            "description": "Número de referencia de la transacción AUTH original a confirmar."
+          }
+        },
+        "required": [
+          "tran_type",
+          "reference_number"
+        ]
+      },
+      "GenericRequest": {
+        "type": "object",
+        "properties": {
+          "tran_type": {
+            "type": "string",
+            "description": "Tipo de transacción.",
+            "enum": [
+              "SALE",
+              "VOID",
+              "REFUND",
+              "AUTH",
+              "COMPLETION",
+              "CANCEL",
+              "CASH_BACK",
+              "CASH_ADVANCE",
+              "KEY_INIT",
+              "KEY_REQUEST",
+              "KEY_FETCH",
+              "KEEP_ALIVE"
+            ]
+          },
+          "stan": {
+            "type": "string",
+            "description": "System Trace Audit Number. Identificador unívoco de la transacción. Con 6 posiciones es suficiente. No puede repetirse en la misma fecha para la misma terminal.",
+            "maxLength": 6,
+            "example": "000003"
+          },
+          "date": {
+            "type": "string",
+            "description": "Fecha y hora de la transacción.",
+            "format": "aaaammddHHmmss",
+            "example": "20211011122818"
+          },
+          "amount": {
+            "type": "string",
+            "format": "decimal",
+            "description": "Importe de la transacción. Debe contener dos posiciones decimales, utilizando el punto como separador.",
+            "example": "12.28"
+          },
+          "tip_amount": {
+            "type": "string",
+            "format": "decimal",
+            "description": "Importe de propina.",
+            "example": "2.00"
+          },
+          "currency": {
+            "type": "string",
+            "description": "Código de moneda numérico de tres dígitos (ISO 4217).",
+            "example": "484"
+          },
+          "order_number": {
+            "type": "string",
+            "description": "Número de orden o factura asociada a la transacción. Opcional.",
+            "example": "000010"
+          },
+          "terminal_code": {
+            "type": "string",
+            "description": "Código de la terminal donde se origina la transacción. Provisto por Pharos.",
+            "example": "00001966"
+          },
+          "merchant_code": {
+            "type": "string",
+            "description": "Código de comercio donde se origina la transacción. Provisto por Pharos.",
+            "example": "1368"
+          },
+          "pos_environment": {
+            "type": "string",
+            "description": "Indicador que establece el contexto donde es originada la transacción.",
+            "enum": [
+              "attended",
+              "unattended",
+              "mpos",
+              "ecommerce",
+              "moto",
+              "recurring",
+              "atm_on_bank",
+              "atm_off_bank"
+            ],
+            "example": "attended"
+          },
+          "card": {
+            "$ref": "#/components/schemas/Card"
+          },
+          "ksn": {
+            "type": "string",
+            "description": "Key Serial Number del dispositivo que leyó los datos. Obligatorio si el mensaje contiene datos encriptados utilizando DUKPT."
+          },
+          "source_ip": {
+            "type": "string",
+            "description": "Dirección IP del dispositivo donde se origina la transacción. Obligatorio para e-commerce.",
+            "example": "189.217.107.102"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "Correo electrónico del cliente. Opcional.",
+            "example": "cliente@example.com"
+          },
+          "phone": {
+            "type": "string",
+            "description": "Teléfono de contacto del cliente. Formato internacional con prefijo de país. Opcional.",
+            "example": "+525512345678"
+          },
+          "postal_code": {
+            "type": "string",
+            "description": "Código Postal del cliente. Opcional.",
+            "example": "03100"
+          }
+        },
+        "required": [
+          "tran_type",
+          "terminal_code",
+          "merchant_code"
+        ]
+      },
+      "GenericResponse": {
+        "type": "object",
+        "properties": {
+          "successful": {
+            "type": "boolean",
+            "description": "Indica si la transacción fue exitosa."
+          },
+          "display_message": {
+            "type": "string",
+            "description": "Mensaje para mostrar al usuario/cajero."
+          },
+          "result_code": {
+            "type": "string",
+            "description": "Código de respuesta que brinda información más específica acerca del resultado de la transacción. Ver 'Anexo I: Códigos de respuesta' del manual para una lista completa.\n\n| Código | Descripción |\n| :--- | :--- |\n| 00 | Transacción aprobada. |\n| 01, 02 | Contactar al emisor. |\n| 03 | Comercio inválido. |\n| 05 | Rechazo genérico. |\n| 12 | Transacción inválida. |\n| 13 | Importe inválido. |\n| 14 | Número de tarjeta inválido. |\n| 33, 54 | Tarjeta vencida. |\n| 41 | Tarjeta perdida. |\n| 43 | Tarjeta robada. Retener tarjeta. |\n| 51 | Fondos insuficientes. |\n| 91 | Emisor o procesador no operativo. |\n| 96 | Error de sistema. |"
+          },
+          "auth_code": {
+            "type": "string",
+            "description": "Código de autorización. Retornado únicamente cuando la transacción es exitosa."
+          },
+          "reference_number": {
+            "type": "string",
+            "description": "Número de referencia generado en el switch. Esencial para operaciones subsecuentes como COMPLETION o CANCEL."
+          },
+          "arpc": {
+            "type": "string",
+            "description": "Authorization Response Cryptogram (EMV tag 91). Devuelto en transacciones con lectura de chip."
+          },
+          "issuer_auth_resp_code": {
+            "type": "string",
+            "description": "Issuer Authentication Response Code (EMV tag 8A). Información devuelta por el emisor. Devuelto en transacciones con lectura de chip."
+          },
+          "script1": {
+            "type": "string",
+            "description": "Script 1 retornado por el emisor para ser ejecutado en la tarjeta con chip. Opcional."
+          },
+          "script2": {
+            "type": "string",
+            "description": "Script 2 retornado por el emisor para ser ejecutado en la tarjeta con chip. Opcional."
           }
         }
+      },
+      "KeepAliveRequest": {
+        "type": "object",
+        "properties": {
+          "tran_type": {
+            "type": "string",
+            "enum": [
+              "KEEP_ALIVE"
+            ]
+          },
+          "date": {
+            "type": "string"
+          },
+          "terminal_code": {
+            "type": "string"
+          },
+          "merchant_code": {
+            "type": "string"
+          },
+          "source_ip": {
+            "type": "string"
+          },
+          "pos_environment": {
+            "type": "string"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/Metadata"
+          }
+        },
+        "required": [
+          "tran_type",
+          "date",
+          "terminal_code",
+          "merchant_code"
+        ]
+      },
+      "KeyInitRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/GenericRequest"
+          }
+        ],
+        "properties": {
+          "tran_type": {
+            "type": "string",
+            "enum": [
+              "KEY_INIT"
+            ]
+          },
+          "encrypted_random_key": {
+            "type": "string",
+            "description": "Llave aleatoria de doble longitud (32 bytes hex) generada por la terminal, encriptada con la llave RSA pública provista por Pharos."
+          },
+          "random_key_check_value": {
+            "type": "string",
+            "description": "Check value de la llave aleatoria generada por la terminal."
+          },
+          "random_key_crc": {
+            "type": "string",
+            "description": "CRC32 de la llave aleatoria generada por la terminal."
+          }
+        }
+      },
+      "KeyInitResponse": {
+        "type": "object",
+        "properties": {
+          "successful": {
+            "type": "boolean"
+          },
+          "encrypted_new_key": {
+            "type": "string",
+            "description": "Nueva llave encriptada con 3DES utilizando la llave aleatoria enviada por la terminal."
+          },
+          "new_key_check_value": {
+            "type": "string",
+            "description": "Check value de la nueva llave."
+          },
+          "new_key_crc": {
+            "type": "string",
+            "description": "CRC32 de la nueva llave."
+          }
+        }
+      },
+      "Metadata": {
+        "type": "object",
+        "description": "Contenedor para datos de diagnóstico de la terminal.",
+        "properties": {
+          "signal": {
+            "type": "string"
+          },
+          "terminalID": {
+            "type": "string"
+          },
+          "serial_number": {
+            "type": "string"
+          },
+          "conection_mode": {
+            "type": "string"
+          },
+          "app_ver": {
+            "type": "string"
+          },
+          "app_install_date": {
+            "type": "string"
+          }
+        }
+      },
+      "PinKeyFetchRequest": {
+        "type": "object",
+        "properties": {
+          "tran_type": {
+            "type": "string",
+            "enum": [
+              "KEY_FETCH"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "Identificador único de la solicitud, obtenido de la respuesta de KEY_REQUEST."
+          },
+          "encrypted_random_key": {
+            "type": "string",
+            "description": "Llave aleatoria de transporte (32 bytes), cifrada con la clave pública RSA de Pharos."
+          },
+          "random_key_check_value": {
+            "type": "string",
+            "description": "KCV de la llave aleatoria de transporte."
+          },
+          "random_key_crc": {
+            "type": "string",
+            "description": "CRC32 de la llave aleatoria de transporte."
+          }
+        },
+        "required": [
+          "tran_type",
+          "request_id",
+          "encrypted_random_key"
+        ]
+      },
+      "PinKeyRequest": {
+        "type": "object",
+        "properties": {
+          "tran_type": {
+            "type": "string",
+            "enum": [
+              "KEY_REQUEST"
+            ]
+          },
+          "terminal_code": {
+            "type": "string"
+          },
+          "merchant_code": {
+            "type": "string"
+          },
+          "key_purpose": {
+            "type": "string",
+            "description": "Propósito de la llave solicitada.",
+            "enum": [
+              "PIN"
+            ]
+          },
+          "key_scheme": {
+            "type": "string",
+            "description": "Esquema de protección de llave.",
+            "enum": [
+              "TR31"
+            ]
+          },
+          "pin_key_variant": {
+            "type": "string",
+            "description": "(Opcional) Identificador de variante o versión de la llave."
+          },
+          "key_entry_mode": {
+            "type": "string",
+            "enum": [
+              "online"
+            ]
+          }
+        },
+        "required": [
+          "tran_type",
+          "terminal_code",
+          "merchant_code",
+          "key_purpose",
+          "key_scheme"
+        ]
+      },
+      "PinKeyRequestResponse": {
+        "type": "object",
+        "properties": {
+          "successful": {
+            "type": "boolean"
+          },
+          "request_id": {
+            "type": "string",
+            "description": "Identificador único de la solicitud, usado posteriormente para recuperación en KEY_FETCH."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending"
+            ],
+            "description": "Estado de la solicitud. 'pending' indica que aún no se ha generado la llave."
+          },
+          "estimated_ready_in_sec": {
+            "type": "integer",
+            "description": "Tiempo estimado en segundos para consultar la disponibilidad de la llave."
+          }
+        }
+      },
+      "RefundRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/GenericRequest"
+          }
+        ],
+        "properties": {
+          "tran_type": {
+            "type": "string",
+            "enum": [
+              "REFUND"
+            ],
+            "description": "Tipo de transacción: Devolución"
+          }
+        }
+      },
+      "SaleRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/GenericRequest"
+          }
+        ],
+        "properties": {
+          "tran_type": {
+            "type": "string",
+            "enum": [
+              "SALE"
+            ],
+            "description": "Tipo de transacción: Venta"
+          }
+        }
+      },
+      "Tags": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "string"
+        },
+        "description": "Lista de tags EMV. Obligatorio únicamente en las transacciones con lectura de chip. El contenido es un objeto de pares clave-valor donde la clave es el Tag EMV (ej. '9F26') y el valor es su contenido en formato hexadecimal.",
+        "example": {
+          "9A": "211011",
+          "9F26": "90AF773B535296BF",
+          "9F27": "80",
+          "4F": "A000000025010801"
+        }
+      },
+      "VoidRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/GenericRequest"
+          }
+        ],
+        "properties": {
+          "tran_type": {
+            "type": "string",
+            "enum": [
+              "VOID"
+            ],
+            "description": "Tipo de transacción: Reverso"
+          },
+          "stan": {
+            "type": "string",
+            "description": "Debe ser el mismo `stan` de la transacción original a reversar."
+          }
+        },
+        "required": [
+          "tran_type",
+          "stan"
+        ]
       }
     }
   }
